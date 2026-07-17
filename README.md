@@ -48,11 +48,6 @@ BASE_URL=http://localhost:3000
 npm test
 ```
 
-### Rodar um teste específico:
-```bash
-npx mocha test/login.test.js --timeout=200000 --reporter mochawesome
-```
-
 ### O que é executado:
 - Testes de login (`test/login.test.js`)
 - Testes de transferência (`test/transferencia.test.js`)
@@ -97,7 +92,7 @@ banco-api-tests/
 O projeto possui um helper reutilizável para obter tokens:
 
 ```javascript
-const { obterToken } = require('./helpers/autenticacao');
+const { obterToken } = require('../helpers/autenticacao');
 
 const token = await obterToken('username', 'senha');
 ```
@@ -139,4 +134,3 @@ Este projeto está sob a licença ISC.
 
 **Versão**: 1.0.0  
 **Última atualização**: 2026-07-17
-
