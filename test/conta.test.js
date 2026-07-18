@@ -11,7 +11,7 @@ describe('GET/contas', () => {
             token = await obterToken('julio.lima', '123456')
         })
 
-        it('Deve retornar 10 elementos na paginação de contas', async() => {
+        it('Deve retornar as contas cadastradas', async() => {
             const resposta = await request(process.env.BASE_URL)
                 .get('/contas?page=1&limit=10')
                 .set('Authorization', `Bearer ${token}`)
