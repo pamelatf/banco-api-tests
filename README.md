@@ -75,12 +75,9 @@ banco-api-tests/
 ### 1. Login
 - **Arquivo**: `test/login.test.js`
 - **Descrição**: Valida o endpoint POST `/login`
-- **Casos de teste**:
-  - Deve retornar 200 com token em string quando usar credenciais válidas — [test/login.test.js](test/login.test.js#L8)
-  - Deve retornar 400 quando o usuário não for informado — [test/login.test.js](test/login.test.js#L19)
-  - Deve retornar 400 quando a senha não for informada — [test/login.test.js](test/login.test.js#L32)
-  - Deve retornar 401 quando for informado um usuário incorreto ou inválido — [test/login.test.js](test/login.test.js#L45)
-  - Deve retornar 401 quando for informada uma senha incorreta ou inválida — [test/login.test.js](test/login.test.js#L59)
+- **Validações**:
+  - Status HTTP 200 em credenciais válidas
+  - Retorno de token em formato string
 
 ### 2. Transferências
 - **Arquivo**: `test/transferencia.test.js`
