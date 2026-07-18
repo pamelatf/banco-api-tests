@@ -5,7 +5,7 @@ const postLogin = require ('../fixtures/postLogin.json')
 
 describe('Login', () => {
     describe('POST /login', () => {
-        it('Deve retornar 200 com token em string quando usar credenciais válidas', async () =>{
+        it('Deve retornar 200 com token em string quando usar credenciais válidas', async () => {
            const bodyLogin = {...postLogin} 
 
             const resposta = await request(process.env.BASE_URL)
@@ -16,7 +16,7 @@ describe('Login', () => {
             expect(resposta.body.token).to.be.a('string');
         })
 
-        it('Deve retornar 400 quando o usuário não for informado', async () =>{
+        it('Deve retornar 400 quando o usuário não for informado', async () => {
             const bodyLogin = {...postLogin}
             bodyLogin.username = ''
 
@@ -29,7 +29,7 @@ describe('Login', () => {
             expect(resposta.body.error).to.equal('Usuário e senha são obrigatórios.')
         })
 
-        it('Deve retornar 400 quando a senha não for informada', async () =>{
+        it('Deve retornar 400 quando a senha não for informada', async () => {
             const bodyLogin = {...postLogin}
             bodyLogin.senha = ''
 
@@ -42,7 +42,7 @@ describe('Login', () => {
             expect(resposta.body.error).to.equal('Usuário e senha são obrigatórios.')
         })
 
-        it('Deve retornar 401 quando for informado um usuário incorreto ou invàlido', async () =>{
+        it('Deve retornar 401 quando for informado um usuário incorreto ou invàlido', async () => {
             const bodyLogin = {...postLogin}
             bodyLogin.username = 'junior'
             bodyLogin.senha = '123456'
@@ -56,7 +56,7 @@ describe('Login', () => {
             expect(resposta.body.error).to.equal('Usuário ou senha inválidos.')
         })
 
-        it('Deve retornar 401 quando for informada uma senha incorreta ou invàlida', async () =>{
+        it('Deve retornar 401 quando for informada uma senha incorreta ou invàlida', async () => {
             const bodyLogin = {...postLogin}
             bodyLogin.username ='julio.lima'
             bodyLogin.senha = '12345'
