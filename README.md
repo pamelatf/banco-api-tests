@@ -51,6 +51,7 @@ npm test
 ### O que é executado:
 - Testes de login (`test/login.test.js`)
 - Testes de transferência (`test/transferencia.test.js`)
+- Testes de contas (`test/conta.test.js`)
 - Relatório detalhado em HTML gerado pelo Mochawesome
 
 ## 📁 Estrutura do Projeto
@@ -59,7 +60,8 @@ npm test
 banco-api-tests/
 ├── test/                          # Arquivos de testes
 │   ├── login.test.js             # Testes de autenticação
-│   └── transferencia.test.js      # Testes de transferências
+│   ├── transferencia.test.js      # Testes de transferências
+│   └── conta.test.js              # Testes de contas
 ├── helpers/                        # Funções utilitárias
 │   └── autenticacao.js            # Helpers de autenticação
 ├── fixtures/                       # Dados de teste
@@ -75,14 +77,28 @@ banco-api-tests/
 ### 1. Login
 - **Arquivo**: `test/login.test.js`
 - **Descrição**: Valida o endpoint POST `/login`
-- **Validações**:
-  - Status HTTP 200 em credenciais válidas
-  - Retorno de token em formato string
+- **Casos de teste**:
+  - Deve retornar 200 com token em string quando usar credenciais válidas — [test/login.test.js](test/login.test.js#L8)
+  - Deve retornar 400 quando o usuário não for informado — [test/login.test.js](test/login.test.js#L19)
+  - Deve retornar 400 quando a senha não for informada — [test/login.test.js](test/login.test.js#L32)
+  - Deve retornar 401 quando for informado um usuário incorreto ou inválido — [test/login.test.js](test/login.test.js#L45)
+  - Deve retornar 401 quando for informada uma senha incorreta ou inválida — [test/login.test.js](test/login.test.js#L59)
 
 ### 2. Transferências
 - **Arquivo**: `test/transferencia.test.js`
-- **Descrição**: Valida o endpoint POST `/transferencias`
-- **Funcionalidade**: Testa transferências entre contas
+- **Descrição**: Valida os endpoints POST e GET `/transferencias`
+- **Casos de teste**:
+  - Deve retornar sucesso com 201 quando o valor da transferência for acima de R$10,00 — [test/transferencia.test.js](test/transferencia.test.js#L16)
+  - Deve retornar falha com 422 quando o valor da transferência for abaixo de R$10,00 — [test/transferencia.test.js](test/transferencia.test.js#L28)
+  - Deve retornar sucesso com 200 e dados iguais ao registro de transferência contido no banco de dados quando o id for válido — [test/transferencia.test.js](test/transferencia.test.js#L42)
+  - Deve retornar 10 elementos na paginação — [test/transferencia.test.js](test/transferencia.test.js#L56)
+
+### 3. Contas
+- **Arquivo**: `test/conta.test.js`
+- **Descrição**: Valida os endpoints GET `/contas` e GET `/contas/:id`
+- **Casos de teste**:
+  - Deve retornar as contas cadastradas — [test/conta.test.js](test/conta.test.js#L14)
+  - Deve retornar sucesso com 200 e dados iguais ao registro de contas contido no banco de dados quando o id for válido — [test/conta.test.js](test/conta.test.js#L24)
 
 ## 🔧 Helpers de Autenticação
 
