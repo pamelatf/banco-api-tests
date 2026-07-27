@@ -1,32 +1,17 @@
-const fs = require('fs');
-const path = require('path');
-const request = require('supertest');
+const { api } = require('../config/ambiente');
 
-require('dotenv').config();
+const obterToken = async (usuario, senha) => {
+    const respostaLogin = await api
+        .post('/login')
+        .set('Content-Type', 'application/json')
+        .send({
+            username: usuario,
+            senha: senha
+        });
 
-const caminhoConfigLocal = path.join(__dirname, 'config.local.json');
-
-function pegarBaseURL() {
-    if (process.env.BASE_URL) {
-        return process.env.BASE_URL;
-    }
-
-    if (fs.existsSync(caminhoConfigLocal)) {
-        const configLocal = JSON.parse(fs.readFileSync(caminhoConfigLocal, 'utf-8'));
-
-        if (configLocal.baseUrl) {
-            return configLocal.baseUrl;
-        }
-    }
-
-    throw new Error(
-        'BaseURL não configurada. Defina BASE_URL no arquivo .env ou copie config/config.example.json para config/config.local.json.'
-    );
-}
-
-const api = request(pegarBaseURL());
+    return respostaLogin.body.token;
+};
 
 module.exports = {
-    api,
-    pegarBaseURL
+    obterToken
 };
