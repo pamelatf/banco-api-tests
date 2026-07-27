@@ -153,7 +153,7 @@ O que cada parte sustenta:
 | Usuário `julio.lima` / `123456` | Login com credenciais válidas e o `beforeEach` de todas as suítes autenticadas |
 | Exatamente 2 contas ativas | Listagem de contas e transferências entre origem e destino |
 | Conta `1` com saldo `6171.13` | Consulta de conta por id, que valida o saldo |
-| Transferência `1` de `1` → `2` no valor `8564.86` | Consulta de transferência por id |
+| Transferência de id `1`, de `1` → `2`, no valor `8564.86` | Consulta de transferência por id — exige que o `AUTO_INCREMENT` esteja começando em 1 |
 | Pelo menos 12 transferências | Paginação com `limit=10` |
 
 > ⚠️ Os testes de transferência movimentam saldo de verdade. Depois de uma execução completa, os valores do banco mudam e as asserções de saldo passam a falhar. Para repetir a suíte do zero, recrie a massa (`TRUNCATE` nas tabelas e rode os `INSERT` de novo) ou ajuste os valores esperados nos testes. Tornar a suíte independente de massa fixa está no [backlog](#️-próximos-passos).
@@ -245,15 +245,60 @@ npx mocha ./test/**/*.test.js --timeout=200000 --grep "401"
 
 ## ⚠️ Falhas esperadas
 
-Nem toda falha desta suíte é problema de configuração. Alguns testes existem justamente para evidenciar divergências entre o que o contrato OpenAPI promete e o que a API entrega — quando eles falham, o resultado é um **achado**, não um erro de setup:
+Nem toda falha desta suíte é problema de configuração. Boa parte dos testes existe justamente para evidenciar divergências entre o que o contrato OpenAPI promete e o que a API entrega — quando eles falham, o resultado é um **achado**, não um erro de setup.
 
-| Teste | Divergência |
-|-------|-------------|
-| Campos de paginação `page`, `limit` e `total` | O serviço de contas ignora os parâmetros de paginação e devolve apenas `{ contas }`, sem os campos documentados |
-| Campo `ativa` como string | O campo é `BOOLEAN` no banco e chega como `0`/`1`, não como a string prevista no contrato |
-| `saldo` como número | O campo é `DECIMAL` e o driver MySQL entrega valores decimais como string por padrão |
+Execução de referência: **18 passando, 10 falhando por defeito ou lacuna da API.** As dez falhas se explicam por seis causas-raiz, todas confirmadas no código da API:
 
-Esses três casos nasceram da aplicação de VADER (letra **R**, respostas) e POISED (letra **I**, interoperabilidade). Mantê-los vermelhos é intencional: eles documentam a lacuna. Se um dia a API for corrigida, eles ficam verdes sozinhos.
+### 1. O esquema do `Authorization` não é validado
+
+**Testes afetados:** esquema `Beares` em `/contas` e em `/transferencias/{id}` — ambos retornam `200` em vez de `401`.
+
+O middleware de autenticação faz `authHeader.split(' ')[1]` e usa o que vier depois do primeiro espaço, sem nunca olhar o prefixo. Na prática, `Beares <token>`, `Basic <token>` ou qualquer palavra funcionam igual a `Bearer <token>`. É a falha mais séria da lista: um cliente mal implementado passa despercebido, e o contrato de autenticação vira convenção informal.
+
+### 2. Recurso inexistente responde `200` com corpo vazio
+
+**Testes afetados:** `/contas/999999`, `/contas/abc` e `/transferencias/999999` — os três retornam `200` em vez de `404`/`400`.
+
+Os controllers de contas e transferências chamam `res.json(result)` sem verificar se o registro foi encontrado. Quando o `SELECT` não casa nenhuma linha, o service devolve `undefined` e o Express responde `200` com corpo vazio. Vale para id inexistente e também para id não numérico, já que a API não valida o tipo do parâmetro de path.
+
+### 3. A paginação de `/contas` não foi implementada
+
+**Teste afetado:** campos `page`, `limit` e `total` no corpo — retornam `undefined`.
+
+O controller sequer repassa `req.query`, e o service ignora os parâmetros e devolve apenas `{ contas }`. Curioso: `/transferencias` implementa a paginação completa, com `page`, `limit` e `total`. A inconsistência entre os dois recursos é, por si só, um achado.
+
+### 4. Tipos divergentes do contrato
+
+**Testes afetados:** `ativa` como string (chega `1`) e `saldo` como número (chega `'6028.13'`).
+
+`ativa` é `BOOLEAN` — ou seja, `TINYINT` no MySQL — e trafega como `0`/`1`. `saldo` é `DECIMAL`, e o driver `mysql2` serializa decimais como string por padrão para não perder precisão. Nenhum dos dois é convertido antes de virar JSON, então o corpo da resposta não bate com o que o Swagger promete.
+
+### 5. Campo obrigatório ausente vira `404`, não `400`
+
+**Teste afetado:** `POST /transferencias` sem `contaOrigem` — retorna `404` em vez de `400`.
+
+O service valida o valor, depois busca as contas e só então descobre que `contaOrigem` é `undefined` — momento em que dispara "Conta de origem ou destino não encontrada". Como não existe validação de payload antes das regras de negócio, um campo faltando é reportado como recurso inexistente. O Swagger documenta `400` para esse caso.
+
+### 6. Transferência para a própria conta é aceita
+
+**Teste afetado:** conta de origem igual à de destino — retorna `201` em vez de `422`.
+
+Não existe nenhuma regra impedindo origem e destino iguais. A operação é registrada como transferência legítima, e o saldo termina inalterado, porque o mesmo valor é debitado e creditado na mesma conta. O banco fica com um lançamento que não corresponde a nenhuma movimentação real.
+
+### O que isso diz sobre a suíte
+
+| Causa-raiz | Testes | Origem heurística |
+|------------|--------|-------------------|
+| Esquema do `Authorization` ignorado | 2 | VADER **A** · POISED **S** |
+| `200` para recurso inexistente | 3 | VADER **E** · POISED **E** |
+| Paginação de contas ausente | 1 | VADER **R** · POISED **P** |
+| Tipos divergentes do contrato | 2 | VADER **R** · POISED **I** |
+| Payload inválido reportado como `404` | 1 | VADER **D** · POISED **E** |
+| Regra de negócio inexistente | 1 | POISED **D** |
+
+Manter esses testes vermelhos é intencional: eles documentam a lacuna e viram verdes sozinhos no dia em que a API for corrigida. Nenhum deles falha por configuração do ambiente.
+
+> ℹ️ **Uma falha que não é lacuna.** O teste "dados iguais ao registro de transferência quando o id for válido" consulta `/transferencias/1`. Se o `AUTO_INCREMENT` da sua tabela não começar em 1 — o que acontece depois de qualquer `DELETE` ou reinserção de massa — não existe transferência com esse id, a API responde `200` com corpo vazio (causa nº 2) e a asserção quebra por falta de dado, não por defeito. O mesmo vale para o saldo esperado da conta `1`. Confira sua massa antes de registrar esses dois como achado.
 
 ## 📊 Relatórios
 
