@@ -7,7 +7,7 @@ describe('GET/contas', () => {
     let token;
 
     beforeEach(async () => {
-        token = await obterToken('julio.lima', '123456');
+        token = await obterToken();
     });
 
     it('Deve retornar as contas cadastradas', async () => {
