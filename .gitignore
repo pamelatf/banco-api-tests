@@ -2,3 +2,10 @@ node_modules/
 mochawesome-report/
 .env
 .vscode/
+
+config/config.local.json
+
+checklist_visual.html
+guia_heuristica_poised.md
+guia_heuristica_vader.md
+checklist_visual_banco_api.html
