@@ -95,7 +95,7 @@ describe('Transferências', () => {
         it('Deve retornar sucesso com 200 e dados iguais ao registro de transferência contido no banco de dados quando o id for válido', async () => {
             const resposta = await api
                 .get('/transferencias/1')
-                .set('Authorization', `Beares ${token}`);
+                .set('Authorization', `Bearer ${token}`);
 
             expect(resposta.status).to.equal(200);
             expect(resposta.body.id).to.equal(1);
@@ -113,7 +113,7 @@ describe('Transferências', () => {
             expect(resposta.status).to.equal(404);
         });
 
-        it('Deve retornar 401 quando o esquema do header Authorization não for "Bearer"', async () => {
+        it('Deve retornar 401 quando o esquema do header Authorization for "Beares" em vez de "Bearer"', async () => {
             const resposta = await api
                 .get('/transferencias/2')
                 .set('Authorization', `Beares ${token}`);
