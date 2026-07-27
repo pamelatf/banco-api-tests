@@ -15,8 +15,6 @@ describe('GET/contas', () => {
             .get('/contas?page=1&limit=10')
             .set('Authorization', `Bearer ${token}`);
 
-        console.log(resposta.body);
-
         expect(resposta.status).to.equal(200);
         expect(resposta.body.contas).to.have.lengthOf(2);
     });
@@ -25,8 +23,6 @@ describe('GET/contas', () => {
         const resposta = await api
             .get('/contas/1')
             .set('Authorization', `Bearer ${token}`);
-
-        console.log(resposta.body);
 
         expect(resposta.status).to.equal(200);
         expect(resposta.body.id).to.equal(1);
