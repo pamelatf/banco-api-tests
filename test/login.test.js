@@ -1,13 +1,19 @@
 const { expect } = require('chai');
-const { api } = require('../config/ambiente');
+const { api, credenciais } = require('../config/ambiente');
 const postLogin = require('../fixtures/postLogin.json');
+
+const montarBodyLogin = () => ({
+    ...postLogin,
+    username: credenciais.usuario,
+    senha: credenciais.senha
+});
 
 describe('Login', () => {
 
     describe('POST /login', () => {
 
         it('Deve retornar 200 com token em string quando usar credenciais válidas', async () => {
-            const bodyLogin = { ...postLogin };
+            const bodyLogin = montarBodyLogin();
 
             const resposta = await api
                 .post('/login')
@@ -19,7 +25,7 @@ describe('Login', () => {
         });
 
         it('Deve retornar 400 quando o usuário não for informado', async () => {
-            const bodyLogin = { ...postLogin };
+            const bodyLogin = montarBodyLogin();
             bodyLogin.username = '';
 
             const resposta = await api
@@ -32,7 +38,7 @@ describe('Login', () => {
         });
 
         it('Deve retornar 400 quando a senha não for informada', async () => {
-            const bodyLogin = { ...postLogin };
+            const bodyLogin = montarBodyLogin();
             bodyLogin.senha = '';
 
             const resposta = await api
@@ -45,9 +51,8 @@ describe('Login', () => {
         });
 
         it('Deve retornar 401 quando for informado um usuário incorreto ou inválido', async () => {
-            const bodyLogin = { ...postLogin };
+            const bodyLogin = montarBodyLogin();
             bodyLogin.username = 'junior';
-            bodyLogin.senha = '123456';
 
             const resposta = await api
                 .post('/login')
@@ -59,8 +64,7 @@ describe('Login', () => {
         });
 
         it('Deve retornar 401 quando for informada uma senha incorreta ou inválida', async () => {
-            const bodyLogin = { ...postLogin };
-            bodyLogin.username = 'julio.lima';
+            const bodyLogin = montarBodyLogin();
             bodyLogin.senha = '12345';
 
             const resposta = await api
@@ -76,17 +80,17 @@ describe('Login', () => {
             const resposta = await api
                 .post('/login')
                 .set('Content-Type', 'application/json')
-                .send('{"username":"julio.lima","senha":');
+                .send(`{"username":"${credenciais.usuario}","senha":`);
 
             expect(resposta.status).to.equal(400);
             expect(resposta.body.error).to.be.a('string');
         });
 
         it('Deve retornar a mesma mensagem de erro para usuário inexistente e para senha incorreta, evitando enumeração de usuários', async () => {
-            const bodyUsuarioInexistente = { ...postLogin };
+            const bodyUsuarioInexistente = montarBodyLogin();
             bodyUsuarioInexistente.username = 'usuario.inexistente';
 
-            const bodySenhaIncorreta = { ...postLogin };
+            const bodySenhaIncorreta = montarBodyLogin();
             bodySenhaIncorreta.senha = 'senhaErrada123';
 
             const respostaUsuarioInexistente = await api

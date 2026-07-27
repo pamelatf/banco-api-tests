@@ -35,7 +35,7 @@ banco-api-tests/
 │   ├── ambiente.js             # Instância única do Supertest + resolução da baseURL
 │   └── config.example.json     # Template de configuração local (versionado)
 ├── fixtures/
-│   ├── postLogin.json          # Payload base de login
+│   ├── postLogin.json          # Formato do payload de login (valores vêm do ambiente)
 │   └── postTransferencias.json # Payload base de transferência
 ├── helpers/
 │   └── autenticacao.js         # obterToken() — geração de token reutilizável
@@ -44,6 +44,7 @@ banco-api-tests/
 │   ├── conta.test.js           # GET /contas e GET /contas/{id}
 │   └── transferencia.test.js   # POST/GET /transferencias e GET /transferencias/{id}
 ├── banco-swagger.json          # Contrato OpenAPI da API sob teste
+├── .env.example                # Template das variáveis de ambiente (versionado)
 ├── package.json
 └── .gitignore
 ```
@@ -54,7 +55,8 @@ Estas são as decisões de organização adotadas no projeto — elas explicam p
 
 - **Configuração centralizada** (`config/ambiente.js`): a `baseURL` é resolvida em um único lugar e exportada como uma instância pronta do Supertest (`api`), consumida por todas as suítes e também pelo helper de autenticação. Nenhum teste conhece a URL da API — trocar de ambiente não exige tocar em arquivo de teste.
 - **Configuração flexível e à prova de clone limpo**: `.env` e `config.local.json` são intercambiáveis, o caminho do arquivo local é resolvido a partir de `__dirname` (a suíte roda de qualquer diretório) e a ausência de configuração produz uma mensagem de erro acionável, não um `ENOENT`.
-- **Segredos e configuração local fora do versionamento**: `.env` e `config/config.local.json` estão no `.gitignore`. O repositório versiona apenas o `config.example.json`, que serve de template.
+- **Segredos e configuração local fora do versionamento**: `.env` e `config/config.local.json` estão no `.gitignore`. O repositório versiona apenas os templates `.env.example` e `config/config.example.json`.
+- **Credenciais fora do código**: o usuário e a senha válidos vêm do ambiente, expostos como `credenciais` pelo `config/ambiente.js`. Nenhum arquivo de teste contém credencial real — só permanecem literais os valores inválidos de propósito, que definem o cenário do teste.
 - **Fixtures externas** (`fixtures/`): os payloads ficam em JSON, separados da lógica de teste.
 - **Fixtures imutáveis**: cada teste trabalha sobre uma cópia (`{ ...postLogin }`) em vez de alterar o objeto importado, evitando vazamento de estado entre testes.
 - **Helper de autenticação** (`helpers/autenticacao.js`): o login é encapsulado em `obterToken()` e chamado no `beforeEach`, eliminando duplicação de setup nas suítes.
@@ -191,27 +193,33 @@ cd banco-api-tests
 npm install
 ```
 
-3. Configure a URL da API. Basta **uma** das duas opções abaixo:
+3. Configure a URL e as credenciais da API. Basta **uma** das duas opções abaixo:
 
-   **Opção A — arquivo `.env` na raiz** (recomendada para CI):
+   **Opção A — arquivo `.env` na raiz** (recomendada para CI), criado a partir do template versionado:
 
+   ```bash
+   cp .env.example .env
    ```
-   BASE_URL=http://localhost:3000
-   ```
 
-   **Opção B — arquivo de configuração local**, criado a partir do template versionado:
+   **Opção B — arquivo de configuração local**, também criado a partir de um template:
 
    ```bash
    cp config/config.example.json config/config.local.json
    ```
+
+   Em qualquer uma das duas, preencha os valores com os dados do seu ambiente.
 
 ### Variáveis de ambiente
 
 | Variável | Descrição | Exemplo |
 |----------|-----------|---------|
 | `BASE_URL` | URL base da API sob teste | `http://localhost:3000` |
+| `USUARIO` | Usuário válido usado para autenticar | `julio.lima` |
+| `SENHA` | Senha do usuário válido | `123456` |
 
-A precedência de resolução é: `process.env.BASE_URL` → `config/config.local.json`. Se nenhuma das duas estiver disponível, a suíte falha na inicialização com uma mensagem explicando como configurar.
+A precedência de resolução é sempre `process.env` → `config/config.local.json`. Se a `BASE_URL` não estiver em nenhum dos dois, a suíte falha na inicialização com uma mensagem explicando como configurar.
+
+Nenhum dos dois arquivos é versionado — os templates `.env.example` e `config/config.example.json` existem justamente para documentar quais chaves precisam ser preenchidas.
 
 ## 🧪 Execução
 
@@ -326,10 +334,18 @@ As duas heurísticas se sobrepõem de propósito: VADER organiza a varredura por
 
 ## 🔧 Uso do helper de autenticação
 
+Sem argumentos, o helper usa a credencial configurada no ambiente:
+
 ```javascript
 const { obterToken } = require('../helpers/autenticacao');
 
-const token = await obterToken('julio.lima', '123456');
+const token = await obterToken();
+```
+
+Os parâmetros continuam disponíveis para quando um teste precisar de **outro** usuário — por exemplo, para validar permissões:
+
+```javascript
+const token = await obterToken('maria.silva', 'senha123');
 ```
 
 Nas suítes, ele é chamado no `beforeEach` para garantir um token válido a cada teste:
@@ -341,7 +357,7 @@ const { obterToken } = require('../helpers/autenticacao');
 let token;
 
 beforeEach(async () => {
-    token = await obterToken('julio.lima', '123456');
+    token = await obterToken();
 });
 
 const resposta = await api
@@ -353,7 +369,6 @@ const resposta = await api
 
 Backlog de evolução identificado no estado atual do projeto:
 
-- [ ] Mover as credenciais de teste para variáveis de ambiente, em vez de literais nas suítes
 - [ ] Cobrir os endpoints `PUT`, `PATCH` e `DELETE /transferencias/{id}`, documentados no Swagger e ainda sem testes
 - [ ] Reduzir a dependência de dados fixos do banco (ids e saldos hardcoded) criando massa de teste na própria suíte
 - [ ] Executar a suíte em pipeline de CI (GitHub Actions), publicando o relatório Mochawesome

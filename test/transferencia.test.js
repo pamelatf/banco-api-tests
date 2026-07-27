@@ -8,7 +8,7 @@ describe('Transferências', () => {
     let token;
 
     beforeEach(async () => {
-        token = await obterToken('julio.lima', '123456');
+        token = await obterToken();
     });
 
     describe('POST /transferencias', () => {
